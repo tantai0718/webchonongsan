@@ -1,67 +1,55 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { categoryAPI, productAPI } from '../services/api';
-import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
+import { useCart } from '../context/CartContext';
 
-const currency = value => `${Number(value || 0).toLocaleString('vi-VN')}₫`;
+const formatCurrency = value => `${Number(value || 0).toLocaleString('vi-VN')}đ`;
+const placeholderImage = 'https://placehold.co/600x760/edf3ee/0f5238?text=Farm2Table';
+const heroImage =
+  'https://lh3.googleusercontent.com/aida-public/AB6AXuCpKqCds0V0p9eOQLlKBtzEb9nwKWAkRQhupzixmGjwfkphXEDaQrwTEHUl4wvWX32nEDFILK_94oyjM4kv7qU4szPTfCxRm3jkYrA09mtkRRsxbusjm875LZSOVXHbrc-UMJvdbcgO4bbtqzjUs1u3ssBnslNa02KIAYcRnZVI-NPN1AWgZbRIITt3sOukKbfZ2EAn5ObI5y-k42C0xNLy3Cyj1RtAf3KsuBuhRMA_f5q-KNWKhCUiD5KlitBU1PypuRctIFOiKfk';
+const farmerImage = '/images/farm2table-ecology.png';
+const featuredCategorySlugs = ['rau-cu', 'trai-cay', 'ngu-coc', 'gia-vi'];
+const categoryImages = {
+  'rau-cu': '/images/raucu.webp',
+  'trai-cay': '/images/trai_cay.webp',
+  'ngu-coc': '/images/ngucoc.jpg',
+  'gia-vi': '/images/gia_vi.jpg',
+};
 
 function ProductCard({ product }) {
-  const { addToCart } = useCart();
   const { user } = useAuth();
+  const { addToCart } = useCart();
   const [added, setAdded] = useState(false);
-  const image = product.images?.[0] || 'https://placehold.co/800x600/f1f5f2/2f5d50?text=Nong+san';
+  const stock = Number(product.ton_kho || 0);
 
   const handleAdd = async event => {
     event.preventDefault();
-    if (!user || user.role !== 'buyer') return;
-
-    try {
-      await addToCart(product.ma_san_pham, 1);
-      setAdded(true);
-      setTimeout(() => setAdded(false), 1800);
-    } catch {}
+    event.stopPropagation();
+    if (!user) return;
+    if (user.role !== 'buyer' || stock <= 0) return;
+    await addToCart(product.ma_san_pham, 1);
+    setAdded(true);
+    setTimeout(() => setAdded(false), 1200);
   };
 
   return (
-    <Link
-      to={`/products/${product.ma_san_pham}`}
-      className="group flex h-full flex-col overflow-hidden rounded-3xl border border-stone-200 bg-white transition-all duration-300 hover:-translate-y-1 hover:border-emerald-200 hover:shadow-xl"
-    >
-      <div className="relative h-52 overflow-hidden">
-        <img src={image} alt={product.ten_san_pham} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
-        <div className="absolute left-4 top-4">
-          <span className="rounded-full bg-white/95 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-800">
-            {product.ten_danh_muc || 'Nông sản'}
-          </span>
-        </div>
-        {product.ton_kho === 0 && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/35">
-            <span className="rounded-full bg-white px-4 py-1.5 text-xs font-semibold text-stone-700">Hết hàng</span>
-          </div>
-        )}
+    <Link to={`/products/${product.ma_san_pham}`} className="group min-w-[260px] overflow-hidden rounded-2xl border border-[#d7ddd8] bg-white shadow-sm hover:-translate-y-1 hover:shadow-lg md:min-w-0">
+      <div className="relative aspect-[4/5] overflow-hidden bg-[#efeded]">
+        <img src={product.images?.[0] || placeholderImage} alt={product.ten_san_pham} className="h-full w-full object-cover transition duration-500 group-hover:scale-105" />
+        {stock > 0 ? <span className="absolute left-4 top-4 rounded-full bg-[#a33d23] px-3 py-1 text-xs font-semibold text-white">Tươi mới</span> : null}
       </div>
-
-      <div className="flex flex-1 flex-col p-5">
-        <p className="text-xs font-medium uppercase tracking-[0.14em] text-stone-400">
-          {product.ten_nong_trai} | {product.tinh_thanh}
-        </p>
-        <h3 className="mt-2 line-clamp-2 text-lg font-semibold text-stone-900">{product.ten_san_pham}</h3>
-        <p className="mt-4 text-2xl font-bold text-emerald-800">{currency(product.gia_ban)}</p>
-        <p className="text-xs uppercase tracking-[0.16em] text-stone-400">Đơn vị {product.don_vi}</p>
-
-        <div className="mt-5 flex items-center justify-between border-t border-stone-100 pt-4">
-          <span className="text-sm text-stone-500">Tồn kho {product.ton_kho}</span>
-          {user?.role === 'buyer' && product.ton_kho > 0 && (
-            <button
-              onClick={handleAdd}
-              className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
-                added ? 'bg-emerald-100 text-emerald-800' : 'bg-stone-900 text-white hover:bg-emerald-800'
-              }`}
-            >
-              {added ? 'Đã thêm' : 'Thêm giỏ'}
-            </button>
-          )}
+      <div className="p-5">
+        <p className="text-xs text-[#404943]">{product.ten_danh_muc || product.ten_nong_trai || 'Nông sản'}</p>
+        <h3 className="mt-2 line-clamp-2 min-h-[48px] text-sm font-semibold leading-6">{product.ten_san_pham}</h3>
+        <div className="mt-3 flex items-end justify-between gap-3">
+          <div>
+            <p className="text-xl font-bold text-[#0f5238]">{formatCurrency(product.gia_ban)}</p>
+            <p className="text-xs text-[#404943]">/ {product.don_vi}</p>
+          </div>
+          <button onClick={handleAdd} aria-label={`Thêm ${product.ten_san_pham} vào giỏ`} className={`flex h-10 w-10 items-center justify-center rounded-full ${added ? 'bg-[#b1f0ce] text-[#0f5238]' : 'bg-[#b1f0ce] text-[#0f5238] hover:bg-[#0f5238] hover:text-white'}`}>
+            <span className="material-symbols-outlined">add</span>
+          </button>
         </div>
       </div>
     </Link>
@@ -69,153 +57,117 @@ function ProductCard({ product }) {
 }
 
 export default function Home() {
-  const [products, setProducts] = useState([]);
-  const [categories, setCategories] = useState([]);
-  const [activeCategory, setActiveCategory] = useState(null);
-  const [search, setSearch] = useState('');
-  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const [categories, setCategories] = useState([]);
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const featuredCategories = featuredCategorySlugs
+    .map(slug => categories.find(category => category.slug === slug))
+    .filter(Boolean);
 
   useEffect(() => {
-    categoryAPI.getAll().then(data => setCategories(data.categories || [])).catch(() => {});
-  }, []);
-
-  useEffect(() => {
-    setLoading(true);
-    const params = new URLSearchParams({ limit: 8 });
-    if (activeCategory) params.set('category', activeCategory);
-    if (search) params.set('q', search);
-
+    categoryAPI.getAll().then(data => setCategories(data.categories || [])).catch(() => setCategories([]));
     productAPI
-      .getAll(`?${params}`)
+      .getAll('?limit=4&sort=moi_nhat')
       .then(data => setProducts(data.products || []))
       .catch(() => setProducts([]))
       .finally(() => setLoading(false));
-  }, [activeCategory, search]);
+  }, []);
 
   return (
-    <div className="min-h-screen bg-[#f7f3eb]">
-      <section className="border-b border-stone-200 bg-gradient-to-b from-[#f3ecdf] to-[#f7f3eb]">
-        <div className="mx-auto max-w-7xl px-4 py-14">
-          <div className="grid gap-8 lg:grid-cols-[1fr_320px] lg:items-end">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-emerald-800">Chợ nông sản sạch</p>
-              <h1 className="mt-4 max-w-3xl text-4xl font-bold leading-tight tracking-[-0.03em] text-stone-900 md:text-6xl">
-                Nông sản tươi mỗi ngày, mua bán đơn giản và dễ tìm hơn.
-              </h1>
-              <p className="mt-5 max-w-2xl text-base leading-8 text-stone-600">
-                Tập trung vào điều quan trọng nhất: tìm sản phẩm nhanh, xem danh mục rõ ràng và mua hàng không rối mắt.
-              </p>
-
-              <form
-                onSubmit={event => {
-                  event.preventDefault();
-                  navigate(`/products?q=${search}`);
-                }}
-                className="mt-8 flex max-w-2xl flex-col gap-3 rounded-[28px] border border-stone-200 bg-white p-3 shadow-sm md:flex-row"
-              >
-                <input
-                  value={search}
-                  onChange={event => setSearch(event.target.value)}
-                  placeholder="Tìm rau củ, trái cây, hạt, đặc sản..."
-                  className="flex-1 rounded-2xl bg-stone-50 px-5 py-4 text-sm text-stone-700 outline-none placeholder:text-stone-400"
-                />
-                <button type="submit" className="rounded-2xl bg-emerald-800 px-6 py-4 text-sm font-semibold text-white transition-colors hover:bg-emerald-900">
-                  Tìm sản phẩm
-                </button>
-              </form>
-            </div>
-
-            <div className="rounded-[30px] border border-stone-200 bg-white p-6 shadow-sm">
-              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-stone-400">Mua nhanh</p>
-              <div className="mt-5 space-y-4">
-                {[
-                  ['Rau củ tươi', 'Nhóm hàng bán chạy mỗi ngày'],
-                  ['Trái cây theo mùa', 'Cập nhật theo nguồn cung hiện có'],
-                  ['Xem toàn bộ sản phẩm', 'Lọc nhanh theo danh mục và giá'],
-                ].map(([title, body]) => (
-                  <div key={title} className="rounded-2xl bg-stone-50 px-4 py-4">
-                    <p className="text-sm font-semibold text-stone-900">{title}</p>
-                    <p className="mt-1 text-sm text-stone-500">{body}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
+    <div className="market-shell">
+      <section className="relative flex min-h-[520px] items-end overflow-hidden md:min-h-[600px] md:items-center">
+        <img src={heroImage} alt="Rau củ tươi trên bàn gỗ" className="absolute inset-0 h-full w-full object-cover" />
+        <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(10,25,18,.82),rgba(10,25,18,.36),rgba(10,25,18,.18))]" />
+        <div className="market-page relative py-12 text-white">
+          <p className="inline-flex rounded-full bg-[#2d6a4f] px-4 py-2 text-xs font-bold uppercase">Tươi ngon mỗi ngày</p>
+          <h1 className="mt-5 max-w-3xl text-4xl font-bold leading-tight md:text-6xl">Nông sản sạch từ tâm</h1>
+          <p className="mt-5 max-w-2xl text-base leading-8 text-white/90 md:text-lg">
+            Kết nối trực tiếp bàn ăn gia đình với nguồn hàng tận tụy, an toàn và minh bạch.
+          </p>
+          <div className="mt-8 flex flex-wrap gap-3">
+            <button onClick={() => navigate('/products')} className="rounded-xl bg-[#0f5238] px-7 py-4 text-sm font-semibold text-white shadow-lg">Mua sắm ngay</button>
+            <button onClick={() => navigate('/about')} className="rounded-xl border border-white/40 bg-white/15 px-7 py-4 text-sm font-semibold text-white backdrop-blur">Tìm hiểu thêm</button>
           </div>
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-4 py-8">
-        <div className="rounded-[30px] border border-stone-200 bg-white p-6 shadow-sm">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-stone-400">Danh mục</p>
-              <h2 className="mt-2 text-2xl font-bold text-stone-900">Chọn nhanh theo nhóm sản phẩm</h2>
-            </div>
-            <Link to="/products" className="text-sm font-semibold text-emerald-800 hover:text-emerald-900">
-              Xem toàn bộ danh mục
-            </Link>
-          </div>
-
-          <div className="mt-6 flex flex-wrap gap-3">
-            {[{ id: null, icon: '🏷️', name: 'Tất cả' }, ...categories].map(category => (
-              <button
-                key={category.id ?? 'all'}
-                onClick={() => setActiveCategory(category.id)}
-                className={`rounded-full px-4 py-2.5 text-sm font-semibold transition-colors ${
-                  activeCategory === category.id
-                    ? 'bg-emerald-800 text-white'
-                    : 'bg-stone-100 text-stone-600 hover:bg-emerald-50 hover:text-emerald-800'
-                }`}
-              >
-                {category.icon} {category.name}
-              </button>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="mx-auto max-w-7xl px-4 pb-12">
-        <div className="mb-6 flex items-end justify-between gap-4">
+      <section className="market-page py-14 md:py-20">
+        <div className="mb-8 flex items-end justify-between gap-4">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-stone-400">Nổi bật</p>
-            <h2 className="mt-2 text-3xl font-bold tracking-[-0.03em] text-stone-900">Sản phẩm đang được quan tâm</h2>
+            <h2 className="text-3xl font-bold">Danh mục nổi bật</h2>
+            <p className="mt-2 text-sm text-[#404943]">Khám phá nguồn dinh dưỡng từ thiên nhiên.</p>
           </div>
-          <Link to="/products" className="rounded-full border border-stone-300 px-4 py-2 text-sm font-semibold text-stone-700 transition-colors hover:border-emerald-700 hover:text-emerald-800">
-            Xem tất cả
-          </Link>
+          <Link to="/products" className="stitch-link text-sm">Xem tất cả</Link>
         </div>
-
-        {loading ? (
-          <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
-            {[...Array(8)].map((_, index) => <div key={index} className="h-[360px] animate-pulse rounded-3xl bg-white" />)}
-          </div>
-        ) : products.length === 0 ? (
-          <div className="rounded-[30px] border border-dashed border-stone-300 bg-white px-6 py-16 text-center">
-            <p className="text-lg font-semibold text-stone-700">Không tìm thấy sản phẩm phù hợp</p>
-            <p className="mt-2 text-sm text-stone-500">Thử đổi từ khóa tìm kiếm hoặc bộ lọc danh mục.</p>
-          </div>
-        ) : (
-          <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
-            {products.map(product => (
-              <ProductCard key={product.ma_san_pham} product={product} />
-            ))}
-          </div>
-        )}
+        <div className="grid auto-rows-[180px] gap-5 md:grid-cols-4 md:grid-rows-2 md:auto-rows-auto md:h-[500px]">
+          {featuredCategories.map((category, index) => (
+            <button
+              key={category.id}
+              onClick={() => navigate(`/products?category=${category.id}`)}
+              className={`group relative overflow-hidden rounded-2xl text-left ${index === 0 ? 'md:col-span-2 md:row-span-2' : index === 1 ? 'md:col-span-2' : ''}`}
+            >
+              <img src={categoryImages[category.slug]} alt={category.name} className="h-full w-full object-cover transition duration-500 group-hover:scale-105" />
+              <span className="absolute inset-0 bg-gradient-to-t from-[#0f5238]/90 via-[#0f5238]/15 to-transparent" />
+              <span className="absolute bottom-0 left-0 p-5 text-white">
+                <strong className="block text-lg font-bold">{category.name}</strong>
+                <small className="mt-1 block text-white/80">{category.icon || 'Farm2Table'} Nguồn hàng chọn lọc</small>
+              </span>
+            </button>
+          ))}
+        </div>
       </section>
 
-      <section className="border-t border-stone-200 bg-white">
-        <div className="mx-auto flex max-w-7xl flex-col gap-5 px-4 py-10 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-stone-400">Cho nhà bán hàng</p>
-            <h2 className="mt-2 text-2xl font-bold text-stone-900">Bạn là nông dân và muốn đăng sản phẩm lên chợ?</h2>
-            <p className="mt-2 text-sm leading-7 text-stone-500">
-              Đăng ký tài khoản để quản lý sản phẩm, cập nhật giá và bán trực tiếp đến người mua.
-            </p>
+      <section className="bg-[#f5f3f3] py-14 md:py-20">
+        <div className="market-page">
+          <div className="mb-8 flex items-center gap-3">
+            <span className="material-symbols-outlined text-[#a33d23]">bolt</span>
+            <h2 className="text-3xl font-bold">Ưu đãi hôm nay</h2>
           </div>
-          <Link to="/register" className="inline-flex items-center justify-center rounded-full bg-emerald-800 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-emerald-900">
-            Đăng ký bán hàng
-          </Link>
+          {loading ? (
+            <div className="grid gap-5 md:grid-cols-4">{Array.from({ length: 4 }).map((_, index) => <div key={index} className="h-[460px] animate-pulse rounded-2xl bg-white" />)}</div>
+          ) : (
+            <div className="flex gap-5 overflow-x-auto pb-3 md:grid md:grid-cols-4 md:overflow-visible">
+              {products.map(product => <ProductCard key={product.ma_san_pham} product={product} />)}
+            </div>
+          )}
+        </div>
+      </section>
+
+      <section className="market-page grid gap-8 py-14 lg:grid-cols-2 lg:items-center lg:py-20">
+        <div className="relative max-w-xl">
+          <div className="absolute -left-6 -top-6 h-44 w-44 rounded-full bg-[#e4e2e2]" />
+          <img src={farmerImage} alt="Nông dân Farm2Table" className="relative aspect-[5/4] w-full rounded-[24px] object-cover shadow-lg" />
+        </div>
+        <div>
+          <p className="stitch-kicker">Về những người bạn</p>
+          <h2 className="mt-4 text-4xl font-bold leading-tight">Câu chuyện từ những bàn tay cần mẫn</h2>
+          <p className="mt-5 text-base leading-8 text-[#404943]">
+            Mỗi sản phẩm bắt đầu từ nông trại thật, quy trình thật và mong muốn đưa thực phẩm sạch đến gần hơn với gia đình Việt.
+          </p>
+          <div className="mt-6 grid gap-4">
+            <div className="flex gap-3">
+              <span className="material-symbols-outlined rounded-lg bg-[#b1f0ce] p-2 text-[#0f5238]">qr_code_2</span>
+              <p className="text-sm leading-6 text-[#404943]"><strong className="block text-[#1b1c1c]">Minh bạch 100%</strong>Quét mã và theo dõi nguồn gốc sản phẩm.</p>
+            </div>
+            <div className="flex gap-3">
+              <span className="material-symbols-outlined rounded-lg bg-[#ffdad2] p-2 text-[#a33d23]">eco</span>
+              <p className="text-sm leading-6 text-[#404943]"><strong className="block text-[#1b1c1c]">Canh tác bền vững</strong>Ưu tiên nông sản an toàn và theo mùa.</p>
+            </div>
+          </div>
+          <Link to="/about" className="mt-7 inline-flex rounded-lg border border-[#0f5238] px-5 py-3 text-sm font-semibold text-[#0f5238]">Gặp gỡ Farm2Table</Link>
+        </div>
+      </section>
+
+      <section className="bg-[#e7eeea] py-14">
+        <div className="market-page text-center">
+          <span className="material-symbols-outlined text-[#0f5238]">mail</span>
+          <h2 className="mt-4 text-3xl font-bold">Nhận thông tin nông sản sạch</h2>
+          <p className="mt-2 text-sm text-[#404943]">Theo dõi mùa vụ và ưu đãi giao hàng mới nhất.</p>
+          <div className="mx-auto mt-6 flex max-w-xl flex-col gap-3 sm:flex-row">
+            <input className="market-field flex-1 px-4 py-3 text-sm" placeholder="Địa chỉ email của bạn" />
+            <button className="rounded-lg bg-[#0f5238] px-6 py-3 text-sm font-semibold text-white">Đăng ký ngay</button>
+          </div>
         </div>
       </section>
     </div>

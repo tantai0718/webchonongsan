@@ -217,9 +217,8 @@ INSERT INTO `danh_muc` (`ma_danh_muc`, `ten_danh_muc`, `duong_dan`, `bieu_tuong`
 (1, 'Rau củ', 'rau-cu', '🥦', 1, 1),
 (2, 'Trái cây', 'trai-cay', '🍎', 2, 1),
 (3, 'Ngũ cốc', 'ngu-coc', '🌾', 3, 1),
-(4, 'Thủy sản', 'thuy-san', '🐟', 4, 1),
 (5, 'Thịt & Trứng', 'thit-trung', '🥚', 5, 1),
-(6, 'Gia vị & Thảo mộc', 'gia-vi', '🌿', 6, 1);
+(6, 'Gia vị & Thảo mộc', 'gia-vi', '🌿', 4, 1);
 
 -- --------------------------------------------------------
 
